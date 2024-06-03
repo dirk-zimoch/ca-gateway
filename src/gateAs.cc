@@ -391,7 +391,7 @@ gateAsEntry* gateAs::findEntryInList(const char* pv, gateAsList& list) const
         int len = (int) strlen(pv);
 #ifdef USE_PCRE
 		pi->substrings=pcre_exec(pi->pat_buff, NULL,
-                    pv, len, 0, PCRE_ANCHORED, pi->ovector, 30);
+                    pv, len, 0, PCRE_ANCHORED, pi->ovector, pi->ovecsize);
 		if((pi->substrings>=0 && pi->ovector[1] == len)
 #ifdef USE_NEG_REGEXP
 		    ^ pi->negate_pattern
