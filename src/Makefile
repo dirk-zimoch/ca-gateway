@@ -25,8 +25,8 @@ ifeq ($(CMPLR_CLASS),msvc)
   USR_LDFLAGS_WIN32 += /SUBSYSTEM:CONSOLE
 endif
 
-ifeq ($(USE_PCRE),YES)
-  USR_CXXFLAGS += -DUSE_PCRE
+ifneq ($(filter YES 1 2,$(USE_PCRE)),)
+  gateAs_CPPFLAGS += -DUSE_PCRE=$(patsubst YES,1,$(USE_PCRE))
   ifeq ($(OS_CLASS),WIN32)
     ifneq (,$(wildcard $(PCRE_DIR)/inc/*.h))
       # Legacy nonstandard pcre3 download and manual install
@@ -53,7 +53,7 @@ ifeq ($(USE_PCRE),YES)
       endif
     endif      
   else
-    USR_SYS_LIBS += pcre
+    USR_SYS_LIBS += $(if $(filter 2,$(USE_PCRE)), pcre2-8, pcre)
   endif
 else
   # On Linux basic regex is part of libc

@@ -625,12 +625,16 @@ distribution may be more recent.</p>
 what process variable name patterns are allowed or denied and to optionally
 associate patterns with access security groups and security levels in the
 access file. The patterns are either Perl compatible regular expressions
-(PCRE) or GNU-style regular expressions, depending on the USE_PCRE variable
-in Makefile. (See a UNIX book for more information about regular expressions.)
-In addition, inverted regular experessions (starting with !) are supported
-depending on the USE_NEG_REGEXP variable in Makefile. For compatibility
-with earlier versions of the gateway, PCRE and inverted regular expressions
-are disable by default. There is a sample file,
+(PCRE or PCRE2) or GNU-style regular expressions, depending on the
+<code>USE_PCRE</code> variable defined in CONFIG_SITE.
+Set <code>USE_PCRE=1</code> (or for backward compatibility
+<code>USE_PCRE=YES</code>) to use obsolete PCRE version 1 or set
+<code>USE_PCRE=2</code> to use modern PCRE2.
+
+<p>In addition, inverted regular experessions (starting with <code>!</code>)
+are supported depending on the <code>USE_NEG_REGEXP</code> variable in Makefile.
+For compatibility with earlier versions of the gateway, PCRE and inverted
+regular expressions are disable by default. There is a sample file,
 gateway.pvlist, in the source distribution and reproduced <a
 href="GATEWAY.pvlist">here</a> to get you started. The version in the
 distribution may be more recent. Directions for this file are in the sample

@@ -82,8 +82,13 @@ gateAsEntry::gateAsEntry(const char* pattern, const char* realname, const char* 
 {
 #ifdef USE_PCRE
 	pat_buff = NULL;
+#if USE_PCRE == 1
 	ovector = NULL;
 	ovecsize = 0;
+#endif
+#if USE_PCRE == 2
+	match_data = NULL;
+#endif
 #else
 	// Set pointers in the pattern buffer
 	pat_buff.buffer=NULL;
@@ -99,8 +104,14 @@ gateAsEntry::~gateAsEntry(void)
 {
 	// Free allocated stuff in the pattern buffer
 #ifdef USE_PCRE
+#if USE_PCRE == 1
 	pcre_free(pat_buff);
 	pcre_free(ovector);
+#endif
+#if USE_PCRE == 2
+	pcre2_code_free(pat_buff);
+	pcre2_match_data_free(match_data);
+#endif
 #else
 	regfree(&pat_buff);
 	// Free allocted stuff in registers
@@ -124,10 +135,11 @@ long gateAsEntry::removeMember(void)
 	return rc;
 }
 
-void gateAsEntry::getRealName(const char* pv, char* rname, int len)
+void gateAsEntry::getRealName(const char* pv, char* rname, size_t len)
 {
 	char c;
-	int in, ir, j, n;
+	size_t in, ir, j;
+	int n;
 
 	if (alias) {  // Build real name from substitution pattern
 		ir = 0;
@@ -139,7 +151,7 @@ void gateAsEntry::getRealName(const char* pv, char* rname, int len)
 #ifdef USE_PCRE
 					if(n < substrings && ovector[2*n] >= 0) {
 						for(j=ovector[2*n];
-							ir<len && j<ovector[2*n+1];
+							ir<len && j<(size_t)ovector[2*n+1];
 							j++)
 						  rname[ir++] = pv[j];
 						if(ir==len)	{
@@ -150,7 +162,7 @@ void gateAsEntry::getRealName(const char* pv, char* rname, int len)
 #else
 					if(regs.start[n] >= 0) {
 						for(j=regs.start[n];
-							ir<len && j<regs.end[n];
+							ir<len && j<(size_t)regs.end[n];
 							j++)
 						  rname[ir++] = pv[j];
 						if(ir==len)	{
@@ -212,28 +224,49 @@ aitBool gateAsEntry::compilePattern(int line) {
 	const char *err;
 
 #ifdef USE_NEG_REGEXP
-        negate_pattern = (pattern[0] == '!');
-        if (negate_pattern) pattern++;
+	negate_pattern = (pattern[0] == '!');
+	if (negate_pattern) pattern++;
 #endif
 
 #ifdef USE_PCRE
+#if USE_PCRE == 1
 	int erroffset;
-        pat_buff = pcre_compile(pattern, 0, &err, &erroffset, NULL);
-	if(!pat_buff)	{
+	pat_buff = pcre_compile(pattern, 0, &err, &erroffset, NULL);
+	if(!pat_buff) {
 		fprintf(stderr,"Line %d: Error after %d chars in Perl regexp: %s\n",
-                    line, erroffset, err);
-                fprintf(stderr,"%s\n", pattern);
-                fprintf(stderr,"%*c\n", erroffset+1, '^');
+			line, erroffset, err);
+		fprintf(stderr,"%s\n", pattern);
+		fprintf(stderr,"%*c\n", erroffset+1, '^');
 		return aitFalse;
 	}
-        pcre_fullinfo(pat_buff, NULL, PCRE_INFO_CAPTURECOUNT, &ovecsize);
-        ovecsize = (ovecsize+1)*3;
-        ovector = (int*) pcre_malloc (sizeof(int)*ovecsize);
+	pcre_fullinfo(pat_buff, NULL, PCRE_INFO_CAPTURECOUNT, &ovecsize);
+	ovecsize = (ovecsize+1)*3;
+	ovector = (int*) pcre_malloc (sizeof(int)*ovecsize);
+#endif
+
+#if USE_PCRE == 2
+	int errorcode;
+	PCRE2_SIZE erroffset;
+	pat_buff = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, 0, &errorcode, &erroffset, NULL);
+	if(!pat_buff) {
+		PCRE2_UCHAR buffer[80];
+        err = (char*)buffer;
+		pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
+		fprintf(stderr,"Line %d: Error after %d chars in Perl regexp: %s\n",
+			line, (int)erroffset, err);
+		fprintf(stderr,"%s\n", pattern);
+		fprintf(stderr,"%*c\n", (int)erroffset+1, '^');
+		return aitFalse;
+	}
+	match_data = pcre2_match_data_create_from_pattern(pat_buff, NULL);
+	ovector = pcre2_get_ovector_pointer(match_data);
+#endif
+
 #else
 	pat_buff.translate=0; pat_buff.fastmap=0;
 	pat_buff.allocated=0; pat_buff.buffer=0;
 
-    if((err = re_compile_pattern(pattern, (int) strlen(pattern), &pat_buff)))	{
+	if((err = re_compile_pattern(pattern, (int) strlen(pattern), &pat_buff)))	{
 		fprintf(stderr,"Line %d: Error in regexp %s : %s\n", line, pattern, err);
 		return aitFalse;
 	}
@@ -388,17 +421,23 @@ gateAsEntry* gateAs::findEntryInList(const char* pv, gateAsList& list) const
 	tsSLIter<gateAsEntry> pi = list.firstIter();
 
 	while(pi.pointer()) {
-        int len = (int) strlen(pv);
+        size_t len = strlen(pv);
 #ifdef USE_PCRE
+#if USE_PCRE == 1
 		pi->substrings=pcre_exec(pi->pat_buff, NULL,
-                    pv, len, 0, PCRE_ANCHORED, pi->ovector, 30);
-		if((pi->substrings>=0 && pi->ovector[1] == len)
+			pv, len, 0, PCRE_ANCHORED, pi->ovector, pi->ovecsize); // max 10 captures
+#endif
+#if USE_PCRE == 2
+		pi->substrings=pcre2_match(pi->pat_buff,
+			(PCRE2_SPTR)pv, len, 0, PCRE2_ANCHORED, pi->match_data, NULL);
+#endif
+		if((pi->substrings>=0 && (size_t)(pi->ovector[1]) == len)
 #ifdef USE_NEG_REGEXP
-		    ^ pi->negate_pattern
+			^ pi->negate_pattern
 #endif
 		) break;
 #else
-        if((re_match(&pi->pat_buff, pv, len, 0, &pi->regs) == len)
+        if((re_match(&pi->pat_buff, pv, len, 0, &pi->regs) == (regoff_t)len)
 #ifdef USE_NEG_REGEXP
 		    ^ pi->negate_pattern
 #endif

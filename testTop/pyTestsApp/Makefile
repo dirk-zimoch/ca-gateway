@@ -23,9 +23,7 @@ TESTFILES += test.db
 TESTFILES += access.txt
 
 # Which pvlist.txt file depends on USE_PCRE
-USE_PCRE ?= NO
-PVLIST_YES = pvlist_pcre.txt
-PVLIST_NO = pvlist_bre.txt
+PVLIST = $(if $(filter YES 1 2,$(USE_PCRE)),pvlist_pcre.txt,pvlist_bre.txt)
 
 CLEANS += *.pyc $(TESTFILES) pvlist.txt gateway.* *.tap
 
@@ -58,7 +56,7 @@ testfiles: $(TESTFILES:%=../%)
 	$(ECHO) "Copying test files $(TESTFILES)"
 	@$(CP) $^ .
 
-pvlist.txt: ../$(PVLIST_$(USE_PCRE))
+pvlist.txt: ../$(PVLIST)
 	$(ECHO) "Copying $< to $@ (USE_PCRE: $(USE_PCRE))"
 	@$(CP) $< $@
 

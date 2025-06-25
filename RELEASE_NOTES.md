@@ -4,6 +4,7 @@ CA Gateway Release Notes
 ## 2.1.4 (not released yet)
 [View diff](https://github.com/epics-extensions/ca-gateway/compare/R2-1-3-0...master)
 
+* Support for pcre2 added
 * Fix some compiler warnings
 * Ensure that ASL defaults to 1
 

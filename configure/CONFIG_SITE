@@ -13,15 +13,12 @@
 #######################################################################
 
 # Use Perl compatible regular expressions (PCRE) instead of basic regex
-#USE_PCRE=YES
+#USE_PCRE=2
 
-# For PCRE on Linux
-#    requires package pcre-devel (or libpcre3-dev) for compiling
-#    requires package pcre (or libpcre3) for running the Gateway
-
+# For PCRE on Linux make sure PCRE 1 or 2 deveopment packeges are installed.
 ifeq ($(OS_CLASS),WIN32)
 
-    # For PCRE on Windows
+    # For PCRE 1 on Windows
     #    install libraries and includes from
     #    https://sourceforge.net/projects/gnuwin32/files/pcre/7.0/pcre-7.0.exe/download
     #    and set the install location here
@@ -29,7 +26,7 @@ ifeq ($(OS_CLASS),WIN32)
 
     # For REGEX on Windows
     #    compile gnuregex inside an EPICS support module from the sources at
-    #    http://www.aps.anl.gov/epics/download/extensions/gnuregex0_13.tar.gz
+    #    https://epics.anl.gov/download/extensions/gnuregex0_13.tar.gz
     #    and set the module location here
     REGEX_DIR=C:/epics/modules/regex
 

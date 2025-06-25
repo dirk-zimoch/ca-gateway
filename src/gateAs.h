@@ -46,7 +46,16 @@ extern "C" {
 #include "aitTypes.h"
 
 #ifdef USE_PCRE
+
+#if USE_PCRE == 1
 #include <pcre.h>
+#endif
+
+#if USE_PCRE == 2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+#endif
+
 #else
 
 extern "C" {
@@ -121,7 +130,7 @@ public:
 #endif
 	long removeMember(void);
 
-	void getRealName(const char* pv, char* real, int len);
+	void getRealName(const char* pv, char* real, size_t len);
 
 	const char* pattern;
 	const char* alias;
@@ -129,10 +138,17 @@ public:
 	int level;
 	ASMEMBERPVT asmemberpvt;
 #ifdef USE_PCRE
-	pcre* pat_buff;
 	int substrings;
+#if USE_PCRE == 1
+	pcre* pat_buff;
 	int ovecsize;
 	int *ovector;
+#endif
+#if USE_PCRE == 2
+	pcre2_code* pat_buff;
+        pcre2_match_data* match_data;
+        PCRE2_SIZE *ovector;
+#endif
 #else
 	char pat_valid;
 	struct re_pattern_buffer pat_buff;
